@@ -10,7 +10,7 @@ const app = express();
 connectBD();
 app.use(express.json());
 app.use(cors({ origin: [
-'http://localhost:3000', 'https://front-node-sigma.vercel.app/'
+'http://localhost:5173', 'https://front-node-sigma.vercel.app'
 ]}));
 const PORT = process.env.PORT;
 app.listen( PORT , () => {
