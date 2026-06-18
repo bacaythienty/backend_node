@@ -20,7 +20,7 @@ app.listen( PORT , () => {
 // ---------------les routes ----------
 
 // inscription et connexion
-app.use(userRoute);
+app.use('/api/auth'  , userRoute);
 // routes pour les questions
 app.use('/api/questions', questionRoute);
 app.get('/' , (req , res) => {
