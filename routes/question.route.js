@@ -21,4 +21,6 @@ router.put('/:id', auth, updateQuestion);
 
 router.delete('/:id', auth, deleteQuestion);
 
+router.post("/:id/upvote", auth, upVote);
+
 module.exports = router;
