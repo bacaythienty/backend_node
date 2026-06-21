@@ -23,34 +23,52 @@ exports.createQuestion = async (req, res) => {
 };
 
 // Récupérer toutes les questions
-exports.getQuestions = async (req, res) => {
-  try {
-    const questions = await Question.find()
-      .populate("author", "prenom nom email")
-      .sort({ createdAt: -1 });
+exports.getQuestions = async(req,res)=>{
 
-    const data = await Promise.all(
-      questions.map(async (question) => {
-        const commentairesCount =
-          await Commentaire.countDocuments({
-            question: question._id,
-          });
+try{
 
-        return {
-          ...question.toObject(),
-          commentairesCount,
-        };
-      })
-    );
+const questions = await Question.find()
+.populate(
+"author",
+"prenom nom"
+)
+.sort({
+createdAt:-1
+});
 
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
+
+const result = await Promise.all(
+questions.map(async(q)=>{
+
+
+const commentairesCount =
+await Commentaire.countDocuments({
+question:q._id
+});
+
+
+return {
+...q.toObject(),
+commentairesCount
 };
 
+
+})
+);
+
+
+res.json(result);
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
 // Récupérer une question par ID
 exports.getQuestionById = async (req, res) => {
   try {
