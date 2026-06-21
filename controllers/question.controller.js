@@ -1,5 +1,6 @@
 const Question = require('../models/question.model'); 
 const commentaireController = require('./commentaire.controller');
+const Commentaire = require('../models/commentaire.model');
 
 // Créer une question
 exports.createQuestion = async (req, res) => {
@@ -58,7 +59,7 @@ exports.getQuestionById = async (req, res) => {
 
     if (!question) {
       return res.status(404).json({
-        message: 'Question introuvable',
+        message: "Question introuvable",
       });
     }
 
@@ -156,6 +157,46 @@ exports.upVote = async (req, res) => {
     await question.save();
 
     res.status(200).json(question);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+exports.getQuestions = async (req, res) => {
+  try {
+    const questions = await Question.find()
+      .populate("author", "prenom nom email")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(questions);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+exports.getQuestions = async (req, res) => {
+  try {
+    const questions = await Question.find()
+      .populate("author", "prenom nom email")
+      .sort({ createdAt: -1 });
+
+    const result = await Promise.all(
+      questions.map(async (question) => {
+        const commentairesCount =
+          await Commentaire.countDocuments({
+            question: question._id,
+          });
+
+        return {
+          ...question.toObject(),
+          commentairesCount,
+        };
+      })
+    );
+
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({
       message: error.message,
