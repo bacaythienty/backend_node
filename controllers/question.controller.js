@@ -1,4 +1,5 @@
-const Question = require('../models/question.model');
+const Question = require('../models/question.model'); 
+const commentaireController = require('./commentaire.controller');
 
 // Créer une question
 exports.createQuestion = async (req, res) => {
@@ -24,10 +25,24 @@ exports.createQuestion = async (req, res) => {
 exports.getQuestions = async (req, res) => {
   try {
     const questions = await Question.find()
-      .populate('author', 'name email')
+      .populate("author", "prenom nom email")
       .sort({ createdAt: -1 });
 
-    res.status(200).json(questions);
+    const data = await Promise.all(
+      questions.map(async (question) => {
+        const commentairesCount =
+          await Commentaire.countDocuments({
+            question: question._id,
+          });
+
+        return {
+          ...question.toObject(),
+          commentairesCount,
+        };
+      })
+    );
+
+    res.status(200).json(data);
   } catch (error) {
     res.status(500).json({
       message: error.message,
@@ -39,7 +54,7 @@ exports.getQuestions = async (req, res) => {
 exports.getQuestionById = async (req, res) => {
   try {
     const question = await Question.findById(req.params.id)
-      .populate('author', 'name email');
+      .populate("author", "prenom nom email");
 
     if (!question) {
       return res.status(404).json({
