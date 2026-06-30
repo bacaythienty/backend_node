@@ -1,8 +1,9 @@
-const Question = require('../models/question.model'); 
-const commentaireController = require('./commentaire.controller');
-const Commentaire = require('../models/commentaire.model');
+const Question = require("../models/question.model");
+const Commentaire = require("../models/commentaire.model");
 
+// =======================
 // Créer une question
+// =======================
 exports.createQuestion = async (req, res) => {
   try {
     const { title, description, tags } = req.body;
@@ -22,54 +23,78 @@ exports.createQuestion = async (req, res) => {
   }
 };
 
-// Récupérer toutes les questions
-exports.getQuestions = async(req,res)=>{
+// =======================
+// Liste des questions
+// =======================
+exports.getQuestions = async (req, res) => {
+  try {
+    const { tri, tag, recherche } = req.query;
 
-try{
+    let filtre = {};
 
-const questions = await Question.find()
-.populate(
-"author",
-"prenom nom"
-)
-.sort({
-createdAt:-1
-});
+    // Recherche par tag
+    if (tag) {
+      filtre.tags = { $regex: tag, $options: "i" };
+    }
 
+    // Recherche par titre
+    if (recherche) {
+      filtre.title = { $regex: recherche, $options: "i" };
+    }
 
-const result = await Promise.all(
-questions.map(async(q)=>{
+    // Tri
+    let triMongo = { createdAt: -1 };
 
+    switch (tri) {
+      case "ancien":
+        triMongo = { createdAt: 1 };
+        break;
 
-const commentairesCount =
-await Commentaire.countDocuments({
-question:q._id
-});
+      case "vote":
+        triMongo = { votes: -1 };
+        break;
 
+      default:
+        triMongo = { createdAt: -1 };
+    }
 
-return {
-...q.toObject(),
-commentairesCount
+    const questions = await Question.find(filtre)
+      .populate("author", "prenom nom email")
+      .sort(triMongo);
+
+    const result = await Promise.all(
+      questions.map(async (question) => {
+        const commentairesCount =
+          await Commentaire.countDocuments({
+            question: question._id,
+          });
+
+        return {
+          ...question.toObject(),
+          commentairesCount,
+        };
+      })
+    );
+
+    // Tri par nombre de commentaires
+    if (tri === "commentaire") {
+      result.sort(
+        (a, b) =>
+          b.commentairesCount - a.commentairesCount
+      );
+    }
+
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
 };
 
-
-})
-);
-
-
-res.json(result);
-
-
-}catch(error){
-
-res.status(500).json({
-message:error.message
-});
-
-}
-
-};
-// Récupérer une question par ID
+// =======================
+// Détail d'une question
+// =======================
 exports.getQuestionById = async (req, res) => {
   try {
     const question = await Question.findById(req.params.id)
@@ -89,20 +114,22 @@ exports.getQuestionById = async (req, res) => {
   }
 };
 
+// =======================
 // Modifier une question
+// =======================
 exports.updateQuestion = async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
 
     if (!question) {
       return res.status(404).json({
-        message: 'Question introuvable',
+        message: "Question introuvable",
       });
     }
 
     if (question.author.toString() !== req.user.id) {
       return res.status(403).json({
-        message: 'Accès refusé',
+        message: "Accès refusé",
       });
     }
 
@@ -121,27 +148,33 @@ exports.updateQuestion = async (req, res) => {
   }
 };
 
+// =======================
 // Supprimer une question
+// =======================
 exports.deleteQuestion = async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
 
     if (!question) {
       return res.status(404).json({
-        message: 'Question introuvable',
+        message: "Question introuvable",
       });
     }
 
     if (question.author.toString() !== req.user.id) {
       return res.status(403).json({
-        message: 'Accès refusé',
+        message: "Accès refusé",
       });
     }
 
+    await Commentaire.deleteMany({
+      question: question._id,
+    });
+
     await question.deleteOne();
 
-    res.status(200).json({
-      message: 'Question supprimée avec succès',
+    res.json({
+      message: "Question supprimée avec succès",
     });
   } catch (error) {
     res.status(500).json({
@@ -150,14 +183,16 @@ exports.deleteQuestion = async (req, res) => {
   }
 };
 
-// Voter pour une question
+// =======================
+// Voter
+// =======================
 exports.upVote = async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
 
     if (!question) {
       return res.status(404).json({
-        message: 'Question introuvable',
+        message: "Question introuvable",
       });
     }
 
@@ -165,7 +200,7 @@ exports.upVote = async (req, res) => {
 
     if (question.voters.includes(userId)) {
       return res.status(400).json({
-        message: 'Vous avez déjà voté',
+        message: "Vous avez déjà voté",
       });
     }
 
@@ -175,46 +210,6 @@ exports.upVote = async (req, res) => {
     await question.save();
 
     res.status(200).json(question);
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-exports.getQuestions = async (req, res) => {
-  try {
-    const questions = await Question.find()
-      .populate("author", "prenom nom email")
-      .sort({ createdAt: -1 });
-
-    res.status(200).json(questions);
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
-  }
-};
-exports.getQuestions = async (req, res) => {
-  try {
-    const questions = await Question.find()
-      .populate("author", "prenom nom email")
-      .sort({ createdAt: -1 });
-
-    const result = await Promise.all(
-      questions.map(async (question) => {
-        const commentairesCount =
-          await Commentaire.countDocuments({
-            question: question._id,
-          });
-
-        return {
-          ...question.toObject(),
-          commentairesCount,
-        };
-      })
-    );
-
-    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({
       message: error.message,
