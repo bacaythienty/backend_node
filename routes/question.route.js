@@ -10,6 +10,7 @@ const {
   updateQuestion,
   deleteQuestion,
   upVote,
+  downVote,
 } = require('../controllers/question.controller');
 
 // Créer une question
@@ -29,5 +30,8 @@ router.delete('/:id', auth, deleteQuestion);
 
 // Voter pour une question
 router.post('/:id/upvote', auth, upVote);
+
+// Dévote une question
+router.post('/:id/downvote', auth, downVote);
 
 module.exports = router;

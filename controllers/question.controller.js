@@ -191,28 +191,59 @@ exports.upVote = async (req, res) => {
     const question = await Question.findById(req.params.id);
 
     if (!question) {
-      return res.status(404).json({
-        message: "Question introuvable",
-      });
+      return res.status(404).json({ message: "Question introuvable" });
     }
 
     const userId = req.user.id;
 
-    if (question.voters.includes(userId)) {
-      return res.status(400).json({
-        message: "Vous avez déjà voté",
-      });
+    // déjà upvoté
+    if (question.upvoters.includes(userId)) {
+      return res.status(400).json({ message: "Déjà upvoté" });
     }
 
+    // retirer du downvote si existait
+    question.downvoters = question.downvoters.filter(
+      (id) => id.toString() !== userId
+    );
+
     question.votes += 1;
-    question.voters.push(userId);
+    question.upvoters.push(userId);
 
     await question.save();
 
     res.status(200).json(question);
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: error.message });
+  }
+};
+
+     exports.downVote = async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id);
+
+    if (!question) {
+      return res.status(404).json({ message: "Question introuvable" });
+    }
+
+    const userId = req.user.id;
+
+    // déjà downvoté
+    if (question.downvoters.includes(userId)) {
+      return res.status(400).json({ message: "Déjà dévoté" });
+    }
+
+    // retirer upvote si existait
+    question.upvoters = question.upvoters.filter(
+      (id) => id.toString() !== userId
+    );
+
+    question.votes -= 1;
+    question.downvoters.push(userId);
+
+    await question.save();
+
+    res.status(200).json(question);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
