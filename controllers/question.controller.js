@@ -208,6 +208,8 @@ exports.upVote = async (req, res) => {
 
     question.votes += 1;
     question.upvoters.push(userId);
+    console.log("Upvoters:", question.upvoters);
+    console.log("Downvoters:", question.downvoters);
 
     await question.save();
 
@@ -239,6 +241,8 @@ exports.upVote = async (req, res) => {
 
     question.votes -= 1;
     question.downvoters.push(userId);
+    console.log("Upvoters:", question.upvoters);
+    console.log("Downvoters:", question.downvoters);
 
     await question.save();
 
